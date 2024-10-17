@@ -1,0 +1,136 @@
+﻿@page "/concertperformance"
+@inject IHttpClientFactory factory
+@inject TokenModel tokenInfo
+
+<PageTitle>Concert Performances</PageTitle>
+
+<h1>Concert Performances</h1>
+
+@if (concertListGet)
+{
+	<EditForm Model="selectedConcert"
+			  method="post"
+			  OnValidSubmit="() => SubmitForm(selectedConcert.Id)">
+
+		<label>Select a concert from the dropdown menu: </label> <br />
+		<InputSelect @bind-Value="selectedConcert.Id">
+			@foreach (var c in concerts)
+			{
+				<option value="@c.Id">@($"{c.ConcertName} {c.StageName}")</option>
+			}
+		</InputSelect>
+		<button class="btn btn-primary" type="submit">Search</button>
+	</EditForm>
+}
+
+@message
+
+@if (performanceListGet)
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Act No.</th>
+				<th>Song</th>
+				<th>Performer</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var p in performances)
+			{
+				<tr>
+					<td>@p.ActNumber</td>
+					<td>@p.SongName</td>
+					<td>@($"{p.LastName} {p.FirstName}")</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+@code {
+
+	private HttpClient? client;
+	private string? message;
+
+	private List<ConcertModel>? concerts;
+	private List<PerformanceModel>? performances;
+
+	private ConcertModel selectedConcert = new();
+
+	private bool concertListGet = false;
+	private bool performanceListGet = false;
+
+
+	protected override void OnInitialized()
+	{
+		GetAllConcerts();
+	}
+
+	private void SubmitForm(int id)
+	{
+		GetConcertPerformances(id);
+	}
+
+	private async Task GetAllConcerts()
+	{
+		ClientCalls calls = new();
+		string callUri = "Concerts";
+
+		concerts = new();
+
+		message = "loading...";
+
+		try
+		{
+			concerts = await calls.GetListFromJsonAsync<ConcertModel>(
+				client,
+				factory,
+				tokenInfo.Token,
+				callUri);
+		}
+		catch (Exception ex)
+		{
+			message = ex.Message;
+			return;
+		}
+
+		concertListGet = true;
+
+		message = "";
+
+		await InvokeAsync(StateHasChanged);
+
+	}
+
+	private async Task GetConcertPerformances(int id)
+	{
+		ClientCalls call = new();
+		string callUri = $"Performances/Concert/{id}";		
+
+		performances = new();
+
+		message = "loading...";
+
+		try
+		{
+			performances = await call.GetListFromJsonAsync<PerformanceModel>(
+				client,
+				factory,
+				tokenInfo.Token,
+				callUri);
+		}
+		catch (Exception ex)
+		{
+			message = ex.Message;
+			return;
+		}
+
+		performanceListGet = true;
+
+		message = "";
+
+		await InvokeAsync(StateHasChanged);	
+	}		
+
+}

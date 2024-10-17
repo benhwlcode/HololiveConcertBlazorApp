@@ -1,0 +1,113 @@
+﻿@page "/allperformance"
+@inject IHttpClientFactory factory
+@inject TokenModel tokenInfo
+
+<PageTitle>All Performances</PageTitle>
+
+<h1>All Performances</h1>
+
+<button class="btn btn-primary" @onclick="GoToPreviousPage">Previous Page</button>
+@currentPage
+<button class="btn btn-primary" @onclick="GoToNextPage">Next Page</button>
+
+@message
+
+@if (performanceListGet)
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Concert</th>
+				<th>Stage</th>
+				<th>Act No.</th>
+				<th>Song</th>
+				<th>Performer</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var p in performances)
+			{
+				<tr>
+					<td>@p.ConcertName</td>
+					<td>@p.StageName</td>
+					<td>@p.ActNumber</td>
+					<td>@p.SongName</td>
+					<td>@($"{p.LastName} {p.FirstName}")</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+
+
+
+@code{
+	private HttpClient? client;
+	private string? message;
+
+	private List<PerformanceModel>? performances;
+	private int currentPage = 1;
+
+	private bool performanceListGet = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await GetPerformances(currentPage);
+	}
+
+	private async Task GoToPreviousPage()
+	{
+		if (currentPage < 1)
+		{
+			message = "There is no page 0 or below.";
+			return;
+		}
+
+		currentPage--;
+		performanceListGet = false;
+		await GetPerformances(currentPage);
+	}
+
+	private async Task GoToNextPage()
+	{
+
+		currentPage++;
+		performanceListGet = false;
+		await GetPerformances(currentPage);
+	}
+
+	private async Task GetPerformances(int page)
+	{
+		ClientCalls calls = new();
+		string callUri = $"Performances/{page}";
+
+		message = "loading...";
+
+		performances = new();
+
+		try
+		{
+			performances = await calls.GetListFromJsonAsync<PerformanceModel>(
+				client,
+				factory,
+				tokenInfo.Token,
+				callUri);
+
+			
+		}
+		catch (Exception ex)
+		{			
+			message = ex.Message;
+			return;
+		}
+
+		performanceListGet = true;
+
+		message = "";
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+
+}

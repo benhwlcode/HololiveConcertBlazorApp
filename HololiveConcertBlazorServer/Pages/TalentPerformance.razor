@@ -1,0 +1,141 @@
+﻿@page "/talentperformance"
+@inject IHttpClientFactory factory
+@inject TokenModel tokenInfo
+
+<PageTitle>Talent Performances</PageTitle>
+
+<h1>Talent Performances</h1>
+
+@if (talentListGet)
+{
+	<EditForm Model="selectedTalent"
+			  method="post"
+			  OnValidSubmit="() => SubmitForm(selectedTalent.Id)">
+
+		<label>Select a talent from the dropdown menu: </label> <br />
+		<InputSelect @bind-Value="selectedTalent.Id">
+			@foreach (var t in talents)
+			{
+				<option value="@t.Id">@($"{t.FirstName} {t.LastName}")</option>
+			}
+		</InputSelect>
+		<button class="btn btn-primary" type="submit">Search</button>
+	</EditForm>
+}
+
+@message
+
+@if (performanceListGet)
+{
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Concert</th>
+				<th>Stage</th>
+				<th>Song</th>
+				<th>Original Song</th>
+				<th>Part of Group</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var p in performances)
+			{
+				<tr>
+					<td>@p.ConcertName</td>
+					<td>@p.StageName</td>
+					<td>@p.SongName</td>
+					<td>@p.IsHololiveOriginal</td>
+					<td>@p.IsGroupPerformance</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
+
+
+
+@code {
+
+	private HttpClient? client;
+	private string? message;
+
+	private List<TalentModel>? talents;
+	private List<PerformanceModel>? performances;
+
+	private TalentModel selectedTalent = new();
+
+	private bool talentListGet = false;
+	private bool performanceListGet = false;
+
+	protected override void OnInitialized()
+	{
+		GetAllTalents();
+	}
+
+	private void SubmitForm(int id)
+	{
+		GetTalentPerformances(id);
+	}	
+
+	private async Task GetAllTalents()
+	{
+		ClientCalls calls = new();
+		string callUri = "Talents";
+
+		talents = new();
+
+		message = "loading...";
+
+		try
+		{
+			talents = await calls.GetListFromJsonAsync<TalentModel>(
+				client,
+				factory,
+				tokenInfo.Token,
+				callUri);
+		}
+		catch (Exception ex)
+		{
+			message = ex.Message;
+			return;
+		}
+
+		talentListGet = true;
+
+		message = "";
+
+		await InvokeAsync(StateHasChanged);
+
+	}
+
+	private async Task GetTalentPerformances(int id)
+	{
+		ClientCalls call = new();
+		string callUri = $"Performances/Talent/{id}";
+
+		performances = new();
+
+		message = "loading...";
+
+		try
+		{
+			performances = await call.GetListFromJsonAsync<PerformanceModel>(
+				client,
+				factory,
+				tokenInfo.Token,
+				callUri);
+		}
+		catch (Exception ex)
+		{
+			message = ex.Message;
+			return;
+		}
+
+		performanceListGet = true;
+
+		message = "";
+
+		await InvokeAsync(StateHasChanged);	
+	}	
+
+}
